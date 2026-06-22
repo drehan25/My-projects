@@ -1,0 +1,179 @@
+COVID-19 Global Analysis
+Reproduces the analysis behind the Excel/Tableau COVID-19 dashboard.
+
+Source: Our World in Data COVID-19 dataset (owid-covid-data.csv),
+daily records per location. Cumulative metrics (total_cases,
+total_deaths, people_vaccinated, ...) are collapsed to one row per
+country by taking each country's maximum (latest cumulative) value.
+"""
+
+import pandas as pd
+import numpy as np
+
+# ---------------------------------------------------------------
+# 1. Load & restrict to actual countries
+#    (OWID encodes continents/World/income groups as rows with a
+#     blank `continent`; real countries always have a continent.)
+# ---------------------------------------------------------------
+df = pd.read_csv("owid-covid-data.csv", parse_dates=["date"])
+countries = df[df["continent"].notna()].copy()
+
+# ---------------------------------------------------------------
+# 2. One row per country — max of cumulative fields, mean of the
+#    static country attributes (GDP, beds, age, ...).
+# ---------------------------------------------------------------
+cumulative = [
+    "total_cases", "total_deaths",
+    "total_cases_per_million", "total_deaths_per_million",
+    "people_vaccinated", "people_fully_vaccinated",
+]
+static_attrs = [
+    "population", "population_density", "median_age", "aged_65_older",
+    "gdp_per_capita", "cardiovasc_death_rate", "diabetes_prevalence",
+    "hospital_beds_per_thousand", "life_expectancy",
+    "human_development_index",
+]
+
+agg = {c: "max" for c in cumulative}
+agg.update({c: "mean" for c in static_attrs})
+
+per_country = (countries.groupby(["continent", "location"])
+                        .agg(agg)
+                        .reset_index())
+
+# Per-country death rate
+per_country["death_rate_pct"] = np.where(
+    per_country["total_cases"] > 0,
+    per_country["total_deaths"] / per_country["total_cases"] * 100,
+    0,
+)
+# Vaccination completion rate
+per_country["completion_rate_pct"] = np.where(
+    per_country["people_vaccinated"] > 0,
+    per_country["people_fully_vaccinated"] / per_country["people_vaccinated"] * 100,
+    0,
+)
+
+# ===============================================================
+# DASHBOARD  — continental totals
+# Death rate is computed on the AGGREGATE (sum of deaths / sum of
+# cases), not the average of country rates.
+# ===============================================================
+continental = (per_country.groupby("continent")
+               .agg(total_cases=("total_cases", "sum"),
+                    total_deaths=("total_deaths", "sum"),
+                    n_countries=("location", "nunique"))
+               .reset_index())
+continental["death_rate_pct"] = (
+    continental["total_deaths"] / continental["total_cases"] * 100
+)
+print("=== Continental Overview (Dashboard) ===")
+print(continental.to_string(index=False))
+
+# Top 15 countries per continent by total cases
+top15 = (per_country.sort_values("total_cases", ascending=False)
+                     .groupby("continent")
+                     .head(15)[["continent", "location",
+                                "total_cases", "total_deaths",
+                                "death_rate_pct"]])
+
+# ===============================================================
+# PER MILLION ANALYSIS — average of per-country normalized values
+# ===============================================================
+per_million = (per_country.groupby("continent")
+               .agg(avg_cases_per_m=("total_cases_per_million", "mean"),
+                    avg_deaths_per_m=("total_deaths_per_million", "mean"),
+                    avg_death_rate=("death_rate_pct", "mean"))
+               .reset_index())
+print("\n=== Per-Million Analysis ===")
+print(per_million.to_string(index=False))
+
+# ===============================================================
+# VACCINATION ANALYSIS
+# ===============================================================
+vacc = (per_country[per_country["people_vaccinated"] > 0]
+        .groupby("continent")
+        .agg(people_vaccinated=("people_vaccinated", "sum"),
+             fully_vaccinated=("people_fully_vaccinated", "sum"),
+             countries_with_data=("location", "nunique"))
+        .reset_index())
+vacc["completion_rate_pct"] = (
+    vacc["fully_vaccinated"] / vacc["people_vaccinated"] * 100
+)
+print("\n=== Vaccination Analysis ===")
+print(vacc.to_string(index=False))
+
+# ===============================================================
+# CORRELATION ANALYSIS — country factors vs COVID outcomes
+# ===============================================================
+factors = [
+    "gdp_per_capita", "median_age", "aged_65_older", "population_density",
+    "cardiovasc_death_rate", "diabetes_prevalence",
+    "hospital_beds_per_thousand", "life_expectancy",
+    "human_development_index",
+]
+outcomes = ["death_rate_pct", "total_cases_per_million", "total_deaths_per_million"]
+
+corr = (per_country[factors + outcomes]
+        .corr(method="pearson")
+        .loc[factors, outcomes]
+        .round(3))
+print("\n=== Correlation: factors vs outcomes (Pearson r) ===")
+print(corr.to_string())
+
+# ===============================================================
+# TIME SERIES — monthly new cases & deaths by continent
+# ===============================================================
+ts = countries.copy()
+ts["month"] = ts["date"].dt.to_period("M").astype(str)
+monthly = (ts.groupby(["month", "continent"])
+             .agg(new_cases=("new_cases", "sum"),
+                  new_deaths=("new_deaths", "sum"))
+             .reset_index())
+monthly_cases = monthly.pivot(index="month", columns="continent",
+                              values="new_cases").fillna(0)
+monthly_cases["Global"] = monthly_cases.sum(axis=1)
+print("\n=== Monthly New Cases by Continent (head) ===")
+print(monthly_cases.head().to_string())
+
+# ===============================================================
+# HEALTHCARE CAPACITY — infrastructure + risk tiers
+# ===============================================================
+hc = (per_country.groupby("continent")
+      .agg(avg_beds_1000=("hospital_beds_per_thousand", "mean"),
+           avg_cardiovasc=("cardiovasc_death_rate", "mean"),
+           avg_diabetes=("diabetes_prevalence", "mean"),
+           avg_life_exp=("life_expectancy", "mean"),
+           avg_death_rate=("death_rate_pct", "mean"),
+           avg_deaths_per_m=("total_deaths_per_million", "mean"),
+           n_countries=("location", "nunique"))
+      .reset_index())
+print("\n=== Healthcare Capacity by Continent ===")
+print(hc.to_string(index=False))
+
+# Risk tiers: count how many of 3 risk factors are "elevated"
+med_beds = per_country["hospital_beds_per_thousand"].median()
+med_cardio = per_country["cardiovasc_death_rate"].median()
+med_diab = per_country["diabetes_prevalence"].median()
+
+def risk_count(row):
+    flags = 0
+    if row["hospital_beds_per_thousand"] < med_beds:   flags += 1   # fewer beds = worse
+    if row["cardiovasc_death_rate"] > med_cardio:      flags += 1
+    if row["diabetes_prevalence"] > med_diab:          flags += 1
+    return flags
+
+per_country["risk_flags"] = per_country.apply(risk_count, axis=1)
+
+# ===============================================================
+# FULL STATISTICS — per-country master table (export-ready)
+# ===============================================================
+full_stats = per_country[[
+    "continent", "location", "total_cases", "total_deaths",
+    "death_rate_pct", "total_cases_per_million",
+    "total_deaths_per_million", "people_vaccinated",
+    "people_fully_vaccinated", "completion_rate_pct",
+]].sort_values(["continent", "total_cases"], ascending=[True, False])
+
+full_stats.to_csv("full_statistics.csv", index=False)
+print(f"\nSaved full_statistics.csv ({len(full_stats)} countries)")
