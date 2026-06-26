@@ -1,0 +1,110 @@
+# Bike Buyer Analytics
+# Reproduces the numbers from the Excel dashboard using basic pandas.
+# Run with:  python analysis.py
+
+import pandas as pd
+
+# 1. Read the raw data
+df = pd.read_csv("bike_buyers.csv")
+
+# 2. Add a 1/0 column: 1 if the person bought a bike, 0 if not
+df["Bought"] = (df["Purchased Bike"] == "Yes").astype(int)
+
+# 3. Build the same two helper columns the dashboard uses
+
+# Age Bracket
+def get_age_bracket(age):
+    if age < 31:
+        return "Adolescent (<31)"
+    elif age <= 54:
+        return "Middle Age (31-54)"
+    else:
+        return "Old (55+)"
+
+df["Age Bracket"] = df["Age"].apply(get_age_bracket)
+
+# Income Band
+def get_income_band(income):
+    if income < 40000:
+        return "<$40K"
+    elif income < 80000:
+        return "$40K-$80K"
+    elif income < 120000:
+        return "$80K-$120K"
+    else:
+        return "$120K+"
+
+df["Income Band"] = df["Income"].apply(get_income_band)
+
+
+# 4. Key numbers (KPIs)
+total_customers = len(df)
+bikes_bought = df["Bought"].sum()
+purchase_rate = df["Bought"].mean()              # average of the 1/0 column = % who bought
+
+buyers_only = df[df["Bought"] == 1]              # just the people who bought
+avg_buyer_income = buyers_only["Income"].mean()
+avg_buyer_age = buyers_only["Age"].mean()
+avg_buyer_cars = buyers_only["Cars"].mean()
+
+print("KEY NUMBERS")
+print("Total customers :", total_customers)
+print("Bikes bought    :", bikes_bought)
+print("Purchase rate   :", round(purchase_rate * 100, 1), "%")
+print("Avg buyer income: $", round(avg_buyer_income))
+print("Avg buyer age   :", round(avg_buyer_age, 1))
+print("Avg buyer cars  :", round(avg_buyer_cars, 2))
+print()
+
+
+# 5. Find the best predictor of buying
+# For each attribute, we look at the purchase rate of each group inside it.
+# The "spread" = highest group rate minus lowest group rate.
+# A big spread means that attribute really separates buyers from non-buyers.
+
+attributes = [
+    "Commute Distance",
+    "Education",
+    "Cars",
+    "Age Bracket",
+    "Region",
+    "Marital Status",
+    "Income Band",
+    "Children",
+]
+
+print("TOP PREDICTORS (biggest spread = strongest predictor)")
+
+results = []   # we'll collect (attribute, spread) here
+
+for attribute in attributes:
+    # purchase rate for each group in this attribute
+    group_rates = df.groupby(attribute)["Bought"].mean()
+
+    # Special case: the dashboard only looks at 0-3 children
+    # (groups with 4 or 5 children are too small to trust)
+    if attribute == "Children":
+        group_rates = group_rates.loc[[0, 1, 2, 3]]
+
+    spread = group_rates.max() - group_rates.min()
+    results.append((attribute, spread))
+
+# sort from biggest spread to smallest
+results.sort(key=lambda row: row[1], reverse=True)
+
+rank = 1
+for attribute, spread in results:
+    print(rank, "-", attribute, ":", round(spread * 100, 1), "% spread")
+    rank = rank + 1
+print()
+
+
+# 6. The ideal buyer segment
+# Dashboard definition: people in the Pacific region who commute 0-1 miles
+ideal = df[(df["Region"] == "Pacific") & (df["Commute Distance"] == "0-1 Miles")]
+ideal_rate = ideal["Bought"].mean()
+
+print("IDEAL BUYER (Pacific region + 0-1 mile commute)")
+print("People in this group   :", len(ideal))
+print("Their purchase rate    :", round(ideal_rate * 100, 1), "%")
+print("Overall purchase rate  :", round(purchase_rate * 100, 1), "%")
