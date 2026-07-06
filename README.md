@@ -62,11 +62,91 @@ reproduces the analysis from the raw data.
 
 
 ### Bike Sales Analytics & Customer Segmentation
-Analysis of 1,026 bike buyer records across 8 demographic and behavioral 
-dimensions to identify the customer attributes that drive purchase 
-conversion and define a target segment for the retailer.
-- **Tools:** Python, Pandas, Excel, Tableau
-- **Full project:** danishrehan.com
+
+Customer-profile analysis of **1,026 prospective bike buyers**, identifying which
+demographic attributes best predict whether someone buys a bike — and defining the
+single highest-converting target segment.
+
+Built first in **Excel** (every figure is a live, auditable formula) and reproduced
+in **Python/pandas** (`analysis.py`) so the core analysis is portable and verifiable
+outside the workbook.
+
+---
+
+## TL;DR — Headline findings
+
+| Metric | Value |
+|---|---|
+| Customers analyzed | 1,026 |
+| Bikes purchased | 495 |
+| **Baseline purchase rate** | **48.2%** |
+| Avg. buyer income | $57,475 |
+| Avg. buyer age | 42.8 |
+| Avg. buyer # of cars | 1.21 |
+| **Ideal-segment conversion** | **74.1%** (Pacific region + 0–1 mi commute) |
+
+**Strongest predictor:** commute distance. Customers commuting **2–5 miles convert at
+58.6%**, those commuting **10+ miles at just 29.2%** — a 29-point spread, the widest of
+any attribute. Targeting the ideal profile lifts expected conversion from the 48%
+baseline to **74%**.
+
+> Surprising result: **income ranks only 6th**. Behavioral/lifestyle signals (commute,
+> car ownership) separate buyers far better than raw earnings.
+
+---
+
+## Methodology
+
+For each attribute we compute the **purchase rate** (buyers ÷ total) within every
+segment, then rank attributes by the **spread** between their best- and worst-converting
+segments. A wide spread means the attribute strongly separates buyers from non-buyers.
+
+### Top predictors (ranked by max–min conversion spread)
+
+| # | Predictor | Spread | Best-converting segment |
+|---|---|---|---|
+| 1 | Commute Distance | 29.4% | 2–5 Miles (58.6%) |
+| 2 | Education | 26.1% | Bachelor's (54.3%) |
+| 3 | # of Cars | 25.8% | 0 cars (60.2%) |
+| 4 | Age Bracket | 23.4% | Middle Age 31–54 (54.7%) |
+| 5 | Region | 15.6% | Pacific (58.9%) |
+| 6 | Income Band | 12.7% | $40K–$80K (53.5%) |
+| 7 | Marital Status | 11.3% | Single (54.3%) |
+| 8 | # of Children | 9.5% | 1 child (57.0%) |
+
+**A note on the Children predictor:** the spread is computed over **0–3 children only**.
+Counts of 4 (n=126) and 5 (n=84) children are sparse and their purchase rates swing
+widely (43% and 21%). Including them would vault Children to the *top* of the ranking
+purely on the back of two small, noisy subgroups — a classic small-sample trap. Capping
+at 0–3 keeps the ranking honest and matches the workbook.
+
+---
+
+## How the Excel dashboard works
+
+The workbook is engineered for **full traceability** — no pasted numbers; every cell is a
+formula tracing back to the raw table.
+
+- **Raw data** lives in a table (`BikeBuyers`) with two derived helper columns:
+  - `Age Bracket` = `IF(Age<31,"Adolescent (<31)",IF(Age<=54,"Middle Age (31-54)","Old (55+)"))`
+  - `Income Band` = `IF(Income<40000,"<$40K",IF(Income<80000,"$40K-$80K",IF(Income<120000,"$80K-$120K","$120K+")))`
+- **Filter engine:** a `Visible` column = `SUBTOTAL(103,[@ID])` returns 1 for rows passing
+  the slicers and 0 otherwise. Every dashboard metric is a `SUMPRODUCT` weighted by
+  `[Visible]`, so all KPIs and charts recalculate live as you slice.
+- **KPIs** (examples):
+  - Purchase rate = `SUMPRODUCT([Visible]*([Purchased Bike]="Yes")) / SUM([Visible])`
+  - Avg buyer income = `SUMPRODUCT([Visible]*([Purchased Bike]="Yes")*[Income]) / SUMPRODUCT([Visible]*([Purchased Bike]="Yes"))`
+- **Predictor spread** (per attribute) = `MAX(segment rates) − MIN(segment rates)`.
+- **Ideal-profile conversion** = purchase rate within `Region="Pacific"` AND
+  `Commute Distance="0-1 Miles"`.
+
+---
+
+## Reproduce it in Python
+
+```bash
+pip install pandas
+python analysis.py          # reads ./bike_buyers.csv
 
 ## Connect
 - Portfolio: danishrehan.com
