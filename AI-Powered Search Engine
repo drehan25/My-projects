@@ -1,3 +1,6 @@
+# AI-Powered Search Engine
+# Reproduces the code behind this project
+
 from exa_py import Exa
 
 # Initialize the Exa client with your API key
