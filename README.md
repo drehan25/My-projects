@@ -61,6 +61,8 @@ reproduces the analysis from the raw data.
 
 
 
+
+
 ### Bike Sales Analytics & Customer Segmentation
 
 Customer-profile analysis of **1,026 prospective bike buyers**, identifying which
@@ -152,3 +154,94 @@ python analysis.py          # reads ./bike_buyers.csv
 - Portfolio: danishrehan.com
 - LinkedIn: linkedin.com/in/danishrehan
 - Email: dyr230001@utdallas.edu
+
+
+
+
+
+
+
+# AI-Powered Search Engine with Exa API
+
+A Python-based search engine that uses the Exa API to retrieve 
+real-time, relevant web results based on a user's query. Unlike 
+traditional keyword-based search, Exa uses neural/semantic search 
+to surface more contextually relevant results based on meaning 
+rather than exact keyword matching.
+
+## What It Does
+
+- Accepts a user search query via the command line
+- Lets the user choose how many results to return
+- Searches the full web using neural/semantic search
+- Returns results including title, URL, and a short summary
+- Displays results in a clean, numbered format
+
+## Demo
+Search here: machine learning in healthcare
+
+How many results would you like? 3
+Top 3 results for: "machine learning in healthcare"
+==================================================
+
+Result 1:
+
+Title:   How AI is Transforming Healthcare Diagnostics
+
+URL:     https://example.com/ai-healthcare
+
+Summary: Machine learning models are being used to detect
+
+diseases earlier and more accurately than traditional
+
+methods...
+Result 2:
+
+...
+
+## Tech Stack
+
+- Python 3
+- Exa API (exa-py)
+
+## Setup
+
+1. Clone this repository
+2. Install the required library:
+pip install exa-py
+3. Get a free API key at exa.ai
+4. Replace YOUR_API_KEY_HERE in the script with your actual key
+5. Run the script:
+python exa_search.py
+
+## Features
+
+- **Neural Search** — Uses meaning-based retrieval instead of 
+  exact keyword matching for more relevant results
+- **Dynamic Result Count** — User chooses how many results 
+  to return at runtime instead of a hardcoded number
+- **Result Summaries** — Displays a short AI-generated summary 
+  for each result alongside the title and URL
+- **Full Web Search** — Searches across the entire web rather 
+  than being restricted to specific domains
+- **Clean Output Formatting** — Results are numbered and 
+  separated for easy readability
+
+## Key Concepts
+
+- **API Integration** — Connects to an external API to fetch 
+  live, real-time search results
+- **Semantic/Neural Search** — Retrieves results based on 
+  meaning and context rather than exact keyword matching
+- **User Input Handling** — Accepts and validates runtime 
+  input from the user for both query and result count
+
+## Notes
+
+This project was built as part of my data analytics portfolio 
+to explore AI-driven information retrieval and external API 
+integration. The API key in this script is a placeholder — 
+get your own free key at exa.ai to run it locally.
+
+Portfolio: danishrehan.com
+LinkedIn: linkedin.com/in/danishrehan
