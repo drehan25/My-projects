@@ -235,5 +235,7 @@ to explore AI-driven information retrieval and external API
 integration. The API key in this script is a placeholder — 
 get your own free key at exa.ai to run it locally.
 
+
+## Connect
 Portfolio: danishrehan.com
 LinkedIn: linkedin.com/in/danishrehan
