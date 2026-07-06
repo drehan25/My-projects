@@ -143,13 +143,6 @@ formula tracing back to the raw table.
   `Commute Distance="0-1 Miles"`.
 
 ---
-
-## Reproduce it in Python
-
-```bash
-pip install pandas
-python analysis.py          # reads ./bike_buyers.csv
-
 ## Connect
 - Portfolio: danishrehan.com
 - LinkedIn: linkedin.com/in/danishrehan
