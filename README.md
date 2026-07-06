@@ -161,7 +161,7 @@ python analysis.py          # reads ./bike_buyers.csv
 
 
 
-# AI-Powered Search Engine with Exa API
+## AI-Powered Search Engine with Exa API
 
 A Python-based search engine that uses the Exa API to retrieve 
 real-time, relevant web results based on a user's query. Unlike 
