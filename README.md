@@ -57,7 +57,8 @@ reproduces the analysis from the raw data.
 - **Full project:** danishrehan.com
 
 
-<br><br>
+
+<br><br><br>
 ### Bike Sales Analytics & Customer Segmentation
 
 Customer-profile analysis of **1,026 prospective bike buyers**, identifying which
