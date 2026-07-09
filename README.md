@@ -145,11 +145,7 @@ formula tracing back to the raw table.
 - LinkedIn: linkedin.com/in/danishrehan
 - Email: dyr230001@utdallas.edu
 
-
-
-
-
-
+<br><br><br>
 ## AI-Powered Search Engine with Exa API
 
 A Python-based search engine that uses the Exa API to retrieve 
